@@ -1,0 +1,7 @@
+track eCLIP_self_peaks
+type bigBed
+bigDataUrl eCLIP.bb
+itemRgb off
+visibility 3
+shortLabel eCLIP
+longLabel eCLIP self peaks

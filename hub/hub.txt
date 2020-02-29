@@ -1,5 +1,5 @@
-hub NMD_autoregulation
-shortLabel NMD autoregulation
-longLabel Integrative transcriptomic analysis suggests new autoregulatory splicing events coupled with nonsense-mediated mRNA decay
+hub site_centric_NMD_autoregulation
+shortLabel site-centric NMD autoregulation
+longLabel A part of the pipeline without eCLIP with splice-site-centric NMD autoregulation
 genomesFile genomes.txt
 email d.pervouchine@skoltech.ru
