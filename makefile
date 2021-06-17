@@ -1,6 +1,6 @@
 .PHONY : all
-qth=0.5
-filter=awk '$$6>0.05 || $$6<-0.05'
+qth=0.5 
+filter=awk '$$6>0.05 || $$6<-0.05' 
 
 all :: data/upf1xrn1/upf1xrn1vscontrol.tsv data/upf1xrn1/smg6xrn1vscontrol.tsv
 
@@ -20,8 +20,14 @@ data/genes.bed : data/gencode.v19.annotation.gtf
 data/gene_names.bed : data/genes.bed
 	cat data/upf1xrn1/M07/* | cut -f1 | sort -u | awk -v OFS="\t" '{split($$1,a,"_");print a[1],a[2],a[2]+1,$$1,1,a[3]}' | intersectBed -a stdin -b data/genes.bed -s -wa -wb | cut -f4,13 > data/gene_names.bed
 
-data/annotated_sites.tsv : ~/db/annotation/gencode.v19.annotation.gtf
-	awk '$$3=="exon"' ~/db/annotation/gencode.v19.annotation.gtf | awk '{print $$1"_"$$4"_"$$7"_A\n"$$1"_"$$5"_"$$7"_D"}' | sort -u > data/annotated_sites.tsv
+data/annotated_gencode.tsv : ~/db/annotation/gencode.v19.annotation.gtf
+	awk '$$3=="exon"' ~/db/annotation/gencode.v19.annotation.gtf | awk '{if($$7=="+"){print $$1"_"$$4"_"$$7"_A\n"$$1"_"$$5"_"$$7"_D"}else{print $$1"_"$$4"_"$$7"_D\n"$$1"_"$$5"_"$$7"_A"}}' | sort -u > data/annotated_gencode.tsv
+
+data/annotated_refgene.tsv : data/refGene.txt.gz
+	zcat data/refGene.txt.gz | awk '{split($$10,a,",");split($$11,b,",");for(i=1;i<length(a);i++){if($$4=="+"){print $$3"_"a[i]"_+_A\n"$$3"_"b[i]"_+_D"}else{print $$3"_"a[i]"_-_D\n"$$3"_"b[i]"_-_A"}}}' | sort -u > data/annotated_refgene.tsv
+
+data/annotated_all.tsv : data/annotated_refgene.tsv data/annotated_gencode.tsv
+	cat data/annotated_refgene.tsv data/annotated_gencode.tsv | sort -u > data/annotated_all.tsv
 
 clean ::
 	rm -f data/genes.bed data/gene_names.bed data/annotated_sites.tsv
@@ -68,7 +74,7 @@ data/shRNA/deltaPSI.tsv : shRNA.mk
 # this is a bed file for track hub
 hub/shRNA-KD.bed : data/shRNA/deltaPSI.tsv
 	mkdir -p hub/
-	${filter} data/shRNA/deltaPSI.tsv | awk -f track.awk | sort -k1,1 -k2,2n > hub/shRNA-KD.bed 
+	${filter} data/shRNA/deltaPSI.tsv | awk -f trackB.awk | sort -k1,1 -k2,2n > hub/shRNA-KD.bed 
 
 # and its bigBed version
 hub/hg19/shRNA.bb : hub/shRNA-KD.bed hub/hg19/hg19.chrom.sizes
@@ -99,8 +105,8 @@ data/upf1xrn1/deltaPSI.tsv : upf1andsmg6.r data/upf1xrn1/upf1xrn1vscontrol.tsv d
 
 # this is a bed file for track hub
 hub/nmd.bed: data/upf1xrn1/upf1xrn1vscontrol.tsv data/upf1xrn1/smg6xrn1vscontrol.tsv
-	tail -n+2 data/upf1xrn1/upf1xrn1vscontrol.tsv | ${filter} | awk -f track.awk | sort -k1,1 -k2,2n > hub/upf1xrn1.bed
-	tail -n+2 data/upf1xrn1/smg6xrn1vscontrol.tsv | ${filter} | awk -f track.awk | sort -k1,1 -k2,2n > hub/smg6xrn1.bed 
+	tail -n+2 data/upf1xrn1/upf1xrn1vscontrol.tsv | ${filter} | awk -f trackA.awk | sort -k1,1 -k2,2n > hub/upf1xrn1.bed
+	tail -n+2 data/upf1xrn1/smg6xrn1vscontrol.tsv | ${filter} | awk -f trackA.awk | sort -k1,1 -k2,2n > hub/smg6xrn1.bed 
 	cat hub/upf1xrn1.bed hub/smg6xrn1.bed | sort -k1,1 -k2,2n > hub/nmd.bed
 
 # and its bigBed version
@@ -115,8 +121,8 @@ clean ::
 ####################
 
 # Here all the pieces are combined together in one table
-#data/combined.tsv data/combined.pdf: data/upf1xrn1/deltaPSI.tsv data/shRNA/deltaPSI.tsv combined.r data/eCLIP/exon_peaks_dist.tsv
-#	Rscript combined.r data/upf1xrn1/deltaPSI.tsv data/shRNA/deltaPSI.tsv data/eCLIP/exon_peaks_dist.tsv data/combined
+data/combined.pdf: data/upf1xrn1/deltaPSI.tsv data/shRNA/deltaPSI.tsv combined.r data/eCLIP/exon_peaks_dist.tsv
+	Rscript combined.r data/upf1xrn1/deltaPSI.tsv data/shRNA/deltaPSI.tsv data/eCLIP/exon_peaks_dist.tsv data/combined
 
 # Script for Figure 2C
 #data/poison.pdf : poison.r data/upf1xrn1/upf1xrn1vscontrol.tsv data/stop.tsv
@@ -126,7 +132,7 @@ clean ::
 #data/essential.pdf : essential.r data/upf1xrn1/upf1xrn1vscontrol.tsv data/stop.tsv
 #	Rscript essential.r data/upf1xrn1/upf1xrn1vscontrol.tsv data/essential.pdf
 
-#all :: data/combined.tsv data/combined.pdf 
+all :: data/combined.pdf 
 	# data/essential.pdf data/poison.pdf
 
 # End of pipeline
